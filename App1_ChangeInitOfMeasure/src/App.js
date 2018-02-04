@@ -5,39 +5,57 @@
  */
 
 import React, {PureComponent} from 'react';
-import ConvertScreen from './container/ConvertScreen'
-import CategoryScreen from './container/CategoryScreen'
+import {AsyncStorage, Text} from 'react-native'
+import AppWithNavigation from './AppWithNavigation'
 
 import {Provider, connect} from 'react-redux'
-import {createStore} from 'redux'
+import {createStore, applyMiddleware} from 'redux'
 
 import reducers from './reducer'
 
-const store = createStore(reducers)
-
-const page = {
-    CONVERT: "CONVERT",
-    CATEGORY: "CATEGORY"
+const persisData = store => next => action => {
+    const result = next(action)
+    asyncSaveAppState(store.getState());
 }
 
-export default class App extends PureComponent{
+const asyncSaveAppState = async ({baseValue, categories, idInput, idResult}) => {
+    try {
+        await AsyncStorage.setItem("@appState", JSON.stringify({baseValue, categories, idInput, idResult}))
+    }
+    catch (err){
+        console.error(err);
+    }
+}
+
+export default class App extends PureComponent {
 
     state = {
-        currentPage: page.CATEGORY
+        isLoading: true
     }
 
-    _goToCategoryScreen = () => this.setState({currentPage: page.CATEGORY});
-    _goToConvertScreen = () => this.setState({currentPage: page.CONVERT})
+    _loadBaseValue = async () => {
+        const savedState = await AsyncStorage.getItem("@appState");
+        this.setState({
+            isLoading: false,
+            store: createStore(
+                reducers,
+                JSON.parse(savedState) || {},
+                applyMiddleware(persisData)
+            )
+        })
+    }
+
+    componentDidMount() {
+        this._loadBaseValue();
+    }
 
     render() {
         return (
-            <Provider store={store}>
-                {
-                    this.state.currentPage === page.CONVERT
-                        ? <ConvertScreen toggleScreen={this._goToCategoryScreen}/>
-                        : <CategoryScreen toggleScreen={this._goToConvertScreen}/>
-                }
-            </Provider>
+            this.state.isLoading
+                ? <Text> Loading... </Text>
+                : <Provider store={this.state.store}>
+                    <AppWithNavigation/>
+                </Provider>
         )
     }
 }

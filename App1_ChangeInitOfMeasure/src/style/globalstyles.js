@@ -28,7 +28,6 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(120,84,164,1)"
     },
     unitDisplay: {
-        padding: 10,
         backgroundColor: "rgba(83,58,113,1)",
     },
     textLarge : {
